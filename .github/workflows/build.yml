@@ -12,19 +12,32 @@ env:
   IMAGE_NAME: orion-bootc
 
 jobs:
-  compile-iso:
+  build:
     runs-on: ubuntu-latest
     steps:
-      # 1. Expand the workspace partition to 60GB+
-      - name: Maximize Disk Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
+      - name: Free Disk Space on Runner
+        run: |
+          echo "=== Disk space before cleanup ==="
+          df -h
+          
+          # Remove heavy pre-installed packages
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          
+          # Clean up apt caches
+          sudo apt-get clean
+          
+          echo "=== Disk space after cleanup ==="
+          df -h
+
+      # --- Keep your existing checkout and bootc/docker build steps below ---
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Your build steps go here...
+
 
       # 2. RECONFIG FIX: Wipe and point Docker to the spacious partition instantly
       - name: Reconfigure Docker Storage Location
