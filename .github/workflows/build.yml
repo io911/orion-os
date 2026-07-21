@@ -20,6 +20,7 @@ jobs:
       packages: write
 
     steps:
+      # CRITICAL: This pulls your repository files into the runner workspace!
       - name: Checkout Repository
         uses: actions/checkout@v4
 
