@@ -15,7 +15,7 @@ jobs:
   compile-iso:
     runs-on: ubuntu-latest
     steps:
-      # 1. Clean the disk layout first
+      # 1. Expand the workspace partition to 60GB+
       - name: Maximize Disk Space
         uses: easimon/maximize-build-space@master
         with:
@@ -26,24 +26,34 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
 
-      # 2. Pull down your repository code files safely
+      # 2. CRITICAL FIX: Relocate Docker to the expanded disk partition
+      - name: Reconfigure Docker Storage Location
+        run: |
+          sudo systemctl stop docker.service docker.socket
+          sudo mkdir -p /home/runner/docker
+          echo '{"data-root": "/home/runner/docker"}' | sudo tee /etc/docker/daemon.json
+          sudo rsync -aP /var/lib/docker/ /home/runner/docker/
+          sudo systemctl start docker.service
+          docker info | grep "Docker Root Dir"
+
+      # 3. Pull down your repository code files safely
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 3. Create required workspace output directories
+      # 4. Create required workspace output directories
       - name: Create Work Directories
         run: |
           mkdir -p ./output
           mkdir -p ./config
 
-      # 4. Build using Docker (Natively uses the expanded storage drive)
+      # 5. Build using local space-maximized Docker
       - name: Build Local Bootc Image
         run: |
           docker build \
             -t localhost/${{ env.IMAGE_NAME }}:latest \
             -f ./Containerfile .
 
-      # 5. Extract image contents directly using the local Docker engine
+      # 6. Extract image contents directly via Docker socket
       - name: Generate Installer ISO
         run: |
           docker run \
@@ -57,7 +67,7 @@ jobs:
             --config /config.toml \
             localhost/${{ env.IMAGE_NAME }}:latest
 
-      # 6. Securely upload the final bootable installer artifact
+      # 7. Upload the final bootable installer artifact
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
