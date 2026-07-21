@@ -48,10 +48,11 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             -f ./Containerfile .
 
-      # Compresses the massive OS layer locally before attempting the cloud stream
+      # Force Podman to push sequentially to prevent GitHub's API from dropping it
       - name: Push Bootc Image to Registry
         run: |
           podman push \
+            --jobs 1 \
             --compression-format gzip \
             --compression-level 4 \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
