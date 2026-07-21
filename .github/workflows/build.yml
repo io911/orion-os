@@ -15,7 +15,7 @@ jobs:
   compile-iso:
     runs-on: ubuntu-latest
     steps:
-      # 1. Maximize disk space on the virtual runner machine
+      # 1. Clean the disk layout first
       - name: Maximize Disk Space
         uses: easimon/maximize-build-space@master
         with:
@@ -25,41 +25,39 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-          remove-docker-images: 'true'
 
-      # 2. Checkout your repository files cleanly into the empty workspace
+      # 2. Pull down your repository code files safely
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 3. Create required workspace directories
+      # 3. Create required workspace output directories
       - name: Create Work Directories
         run: |
           mkdir -p ./output
           mkdir -p ./config
 
-      # 4. Compile the Fedora bootc OS directly to the local runner storage
+      # 4. Build using Docker (Natively uses the expanded storage drive)
       - name: Build Local Bootc Image
         run: |
-          podman build \
+          docker build \
             -t localhost/${{ env.IMAGE_NAME }}:latest \
             -f ./Containerfile .
 
-      # 5. Hand the local container to the ISO builder directly on the same machine
+      # 5. Extract image contents directly using the local Docker engine
       - name: Generate Installer ISO
         run: |
-          # We pass the image through the docker socket mapping directly
           docker run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
-            -v /var/lib/containers/storage:/var/lib/containers/storage:ro \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
             localhost/${{ env.IMAGE_NAME }}:latest
 
-      # 6. Upload the final bootable installer artifact directly to your dashboard
+      # 6. Securely upload the final bootable installer artifact
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
