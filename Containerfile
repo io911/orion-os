@@ -6,12 +6,12 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-44.noarch.rpm
 
-# 2. Enable the official Niri Copr repository
-RUN dnf -y copr enable yalter/niri
-RUN dnf -y swap ffmpeg-free ffmpeg --allowerasing
+# 2. Install the dnf5 COPR plugin and enable the official Niri repository
+RUN dnf5 -y copr enable yalter/niri
+RUN dnf5 -y swap ffmpeg-free ffmpeg --allowerasing
 
 # 3. Install Niri, cosmic-greeter, hardware accelerated drivers, Kitty, and essentials
-RUN dnf -y install \
+RUN dnf5 -y install \
     niri \
     xwayland-satellite \
     waybar \
