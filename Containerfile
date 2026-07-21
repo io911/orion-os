@@ -46,8 +46,9 @@ RUN echo -e '[default_session]\ncommand = "cosmic-greeter"\nuser = "greeter"' > 
 # 5. Enable the greetd background service
 RUN systemctl enable greetd.service
 
-# 6. The Container Security Config (Polkit / Greetd Fix)
-RUN chmod +x build-setup.sh && ./build-setup.sh && rm build-setup.sh
-
 # 6. Set the system hostname to Orion
 RUN echo "orion" > /etc/hostname
+
+# 7. The Container Security Config (Polkit / Greetd Fix)
+RUN chmod +x build-setup.sh && ./build-setup.sh && rm build-setup.sh
+
