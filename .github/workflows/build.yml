@@ -1,4 +1,4 @@
-name: Build Orion OS & Installer ISO
+name: Build Orion OS Installer ISO
 
 on:
   push:
@@ -10,16 +10,12 @@ on:
 
 env:
   IMAGE_NAME: orion-bootc
-  REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  build-push:
+  compile-iso:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
+      # 1. Maximize disk space on the virtual runner machine
       - name: Maximize Disk Space
         uses: easimon/maximize-build-space@master
         with:
@@ -31,68 +27,39 @@ jobs:
           remove-codeql: 'true'
           remove-docker-images: 'true'
 
-      # Crucial step: Make sure we check out our code *after* clean up
+      # 2. Checkout your repository files cleanly into the empty workspace
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # Force compression on-disk to stop network timeouts
-      - name: Build Bootc Image with Podman
-        run: |
-          podman build \
-            --pull \
-            --format docker \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            -f ./Containerfile .
-
-      # Force Podman to push sequentially to prevent GitHub's API from dropping it
-      - name: Push Bootc Image to Registry
-        run: |
-          podman push \
-            --jobs 1 \
-            --compression-format gzip \
-            --compression-level 4 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-  generate-iso:
-    needs: build-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Maximize Disk Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      # 3. Create required workspace directories
       - name: Create Work Directories
         run: |
           mkdir -p ./output
           mkdir -p ./config
 
+      # 4. Compile the Fedora bootc OS directly to the local runner storage
+      - name: Build Local Bootc Image
+        run: |
+          podman build \
+            -t localhost/${{ env.IMAGE_NAME }}:latest \
+            -f ./Containerfile .
+
+      # 5. Hand the local container to the ISO builder directly on the same machine
       - name: Generate Installer ISO
         run: |
-          # Use docker here since the builder image is optimized for it
+          # We pass the image through the docker socket mapping directly
           docker run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
+            -v /var/lib/containers/storage:/var/lib/containers/storage:ro \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            localhost/${{ env.IMAGE_NAME }}:latest
 
+      # 6. Upload the final bootable installer artifact directly to your dashboard
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
