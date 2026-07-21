@@ -1,0 +1,12 @@
+[v1]
+[v1.blueprint]
+name = "orion-os"
+description = "Orion OS Fedora 44 bootc system image custom configuration"
+version = "0.1.0"
+
+[[v1.blueprint.customizations.user]]
+name = "orionuser"
+description = "Primary Orion Operator"
+groups = ["wheel", "video", "audio"]
+# You can generate a password hash using: openssl passwd -6
+password = "$6$rounds=40000$reporandomsalt$8GgX.G6tUj9rE.vLg1bZ2jY9w..." 
