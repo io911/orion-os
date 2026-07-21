@@ -85,8 +85,10 @@ jobs:
             --config /config.toml \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Upload ISO Installer Artifact
-        uses: actions/artifacts-upload@v1
+           - name: Upload ISO Installer Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: orion-os-installer-iso
           path: ./output/bootiso/install.iso
+          if-no-files-found: error
+          retention-days: 7
