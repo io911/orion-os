@@ -20,7 +20,6 @@ jobs:
       packages: write
 
     steps:
-      # 1. Clean the disk first so we don't wipe out our code layout
       - name: Maximize Disk Space
         uses: easimon/maximize-build-space@master
         with:
@@ -30,25 +29,26 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+          remove-docker-images: 'true'
 
-      # 2. NOW pull your repository files safely into the cleaned workspace!
+      # Crucial step: Make sure we check out our code *after* clean up
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and Push Bootc Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Containerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+      - name: Build Bootc Image with Podman
+        run: |
+          podman build \
+            --pull \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            -f ./Containerfile .
+
+      - name: Push Bootc Image to Registry
+        run: |
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
   generate-iso:
     needs: build-push
@@ -63,6 +63,7 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+          remove-docker-images: 'true'
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -74,6 +75,7 @@ jobs:
 
       - name: Generate Installer ISO
         run: |
+          # Use docker here since the builder image is optimized for it
           docker run \
             --rm \
             --privileged \
