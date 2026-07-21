@@ -11,18 +11,19 @@ RUN dnf -y install 'dnf5-command(copr)' && dnf -y copr enable yalter/niri
 RUN dnf -y swap ffmpeg-free ffmpeg --allowerasing
 
 # 3. Install Niri, cosmic-greeter, hardware accelerated drivers, Kitty, and essentials
-RUN dnf -y install \
+RUN dnf -y upgrade --refresh && dnf -y install \
     niri \
     xwayland-satellite \
     waybar \
     cosmic-greeter \
     greetd \
     kitty \
-    wl-sunset \
+    wlsunset \
     swayidle \
+    swaylock \
     swaybg \
     wlogout \
-    dophin \
+    dolphin \
     qalculate \
     mpv \
     firefox \
@@ -30,13 +31,11 @@ RUN dnf -y install \
     mesa-va-drivers-freeworld \
     mesa-vdpau-drivers-freeworld \
     intel-media-driver \
-    libva \
     libva-utils \ 
     htop \
     micro \
     pipewire \
     wireplumber \
-    git \
     fastfetch \
     && dnf clean all
 
