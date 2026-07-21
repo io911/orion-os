@@ -43,8 +43,8 @@ jobs:
       - name: Build and Push Bootc Image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Containerfile
+          context: ./orion-os
+          file: ./orion-os/Containerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
