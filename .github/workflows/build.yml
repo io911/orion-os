@@ -26,13 +26,13 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
 
-      # 2. CRITICAL FIX: Relocate Docker to the expanded disk partition
+      # 2. RECONFIG FIX: Wipe and point Docker to the spacious partition instantly
       - name: Reconfigure Docker Storage Location
         run: |
           sudo systemctl stop docker.service docker.socket
           sudo mkdir -p /home/runner/docker
           echo '{"data-root": "/home/runner/docker"}' | sudo tee /etc/docker/daemon.json
-          sudo rsync -aP /var/lib/docker/ /home/runner/docker/
+          sudo rm -rf /var/lib/docker
           sudo systemctl start docker.service
           docker info | grep "Docker Root Dir"
 
