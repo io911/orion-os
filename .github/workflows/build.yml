@@ -65,23 +65,29 @@ jobs:
           docker build \
             -t localhost/${{ env.IMAGE_NAME }}:latest \
             -f ./Containerfile .
-
-      # 6. Extract image contents directly via Docker engine to create the ISO
+            
+     # 6. Save the Docker image to disk and load it directly into Podman's local cache
+      - name: Load Image into Local Podman Storage
+        run: |
+          docker save localhost/${{ env.IMAGE_NAME }}:latest -o ./output/image.tar
+          sudo podman load -i ./output/image.tar
+          rm -f ./output/image.tar
+          
+    # 7. Generate the final ISO using Podman's storage cache mapping
       - name: Generate Installer ISO
         run: |
-          docker run \
+          sudo podman run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
-            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            --local-docker \
             localhost/${{ env.IMAGE_NAME }}:latest
 
-      # 7. Upload the final bootable installer artifact
+      # 8. Upload the final bootable installer artifact
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
