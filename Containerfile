@@ -12,6 +12,9 @@ RUN dnf -y swap ffmpeg-free ffmpeg --allowerasing
 
 # 3. Install Niri, cosmic-greeter, hardware accelerated drivers, Kitty, and essentials
 RUN dnf -y upgrade --refresh && dnf -y install \
+    --refresh \
+    --allow-downgrade \
+    --skip-broken \
     niri \
     xwayland-satellite \
     waybar \
