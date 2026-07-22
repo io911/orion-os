@@ -77,21 +77,23 @@ jobs:
       - name: Generate Installer ISO
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          mkdir -p ./containers-storage
           sudo podman run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
+            -v ./containers-storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            --rootfs ext4 \
+            --rootfs xfs \
             ${IMAGE_LOWER}:latest
 
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: orion-os-installer-iso
-          path: ./output/bootiso/install.iso
+          path: ./output/bootiso/orion-os.iso
           if-no-files-found: error
           retention-days: 7
