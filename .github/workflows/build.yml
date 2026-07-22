@@ -77,17 +77,16 @@ jobs:
       - name: Generate Installer ISO
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          mkdir -p ./containers-storage
           sudo podman run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
-            -v ./containers-storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            --rootfs xfs \
+            --rootfs ext4 \
+            --target-arch amd64 \
             ${IMAGE_LOWER}:latest
 
       - name: Upload ISO Installer Artifact
