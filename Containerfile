@@ -27,15 +27,11 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     qalculate \
     mpv \
     firefox \
-    mesa-dri-drivers \
     mesa-va-drivers-freeworld \
-    mesa-vdpau-drivers-freeworld \
     intel-media-driver \
     libva-utils \ 
     htop \
     micro \
-    pipewire \
-    wireplumber \
     fastfetch \
     && dnf clean all
 
