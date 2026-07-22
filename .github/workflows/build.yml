@@ -1,4 +1,4 @@
-name: Build Orion OS Installer ISO
+name: Build Orion OS & Installer ISO
 
 on:
   push:
@@ -10,36 +10,26 @@ on:
 
 env:
   IMAGE_NAME: orion-bootc
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  build:
+  build-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Free Disk Space on Runner
-        run: |
-          echo "=== Disk space before cleanup ==="
-          df -h
-          
-          # Remove heavy pre-installed packages
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          
-          # Clean up apt caches
-          sudo apt-get clean
-          
-          echo "=== Disk space after cleanup ==="
-          df -h
+      - name: Maximize Disk Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
 
-      # --- Keep your existing checkout and bootc/docker build steps below ---
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # Your build steps go here...
-
-
-      # 2. RECONFIG FIX: Wipe and point Docker to the spacious partition instantly
       - name: Reconfigure Docker Storage Location
         run: |
           sudo systemctl stop docker.service docker.socket
@@ -47,48 +37,64 @@ jobs:
           echo '{"data-root": "/home/runner/docker"}' | sudo tee /etc/docker/daemon.json
           sudo rm -rf /var/lib/docker
           sudo systemctl start docker.service
-          docker info | grep "Docker Root Dir"
 
-      # 3. Pull down your repository code files safely
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 4. Create required workspace output directories
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # We build directly using lowercase registry variables to avoid GHCR tag naming errors
+      - name: Build Local Bootc Image
+        run: |
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          docker build \
+            -t ${IMAGE_LOWER}:latest \
+            -f ./Containerfile .
+
+      - name: Push Container to GitHub Packages
+        run: |
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          docker push ${IMAGE_LOWER}:latest
+
+  generate-iso:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize Disk Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Create Work Directories
         run: |
           mkdir -p ./output
           mkdir -p ./config
 
-      # 5. Build using local space-maximized Docker
-      - name: Build Local Bootc Image
-        run: |
-          docker build \
-            -t localhost/${{ env.IMAGE_NAME }}:latest \
-            -f ./Containerfile .
-            
-     # 6. Save the Docker image to disk and load it directly into Podman's local cache
-      - name: Load Image into Local Podman Storage
-        run: |
-          docker save localhost/${{ env.IMAGE_NAME }}:latest -o ./output/image.tar
-          sudo podman load -i ./output/image.tar
-          rm -f ./output/image.tar
-          
-    # 7. Generate the final ISO using Podman's storage cache mapping
+      # The ISO utility pulls the image from the cloud, embedding the tracking URL natively into the OS
       - name: Generate Installer ISO
         run: |
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
             -v ./output:/output \
-            -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
             --rootfs xfs \
-            localhost/${{ env.IMAGE_NAME }}:latest
+            ${IMAGE_LOWER}:latest
 
-      # 8. Upload the final bootable installer artifact
       - name: Upload ISO Installer Artifact
         uses: actions/upload-artifact@v4
         with:
