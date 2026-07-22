@@ -25,6 +25,9 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     wlogout \
     dolphin \
     qalculate \
+    mediawriter \
+    flatpak \
+    flatseal \
     mpv \
     firefox \
     mesa-va-drivers-freeworld \
@@ -40,7 +43,3 @@ RUN echo -e '[default_session]\ncommand = "cosmic-greeter"\nuser = "greeter"' > 
 
 # 5. Set the system hostname to Orion
 RUN echo "orion" > /etc/hostname
-
-# 6. The Container Security Config (Polkit / Greetd Fix)
-RUN chmod +x build-setup.sh && ./build-setup.sh && rm build-setup.sh
-
