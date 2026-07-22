@@ -66,7 +66,7 @@ jobs:
             -t localhost/${{ env.IMAGE_NAME }}:latest \
             -f ./Containerfile .
 
-      # 6. Extract image contents directly via Docker socket
+      # 6. Extract image contents directly via Docker engine to create the ISO
       - name: Generate Installer ISO
         run: |
           docker run \
@@ -78,6 +78,7 @@ jobs:
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
+            --local-docker \
             localhost/${{ env.IMAGE_NAME }}:latest
 
       # 7. Upload the final bootable installer artifact
