@@ -27,7 +27,6 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     qalculate \
     mediawriter \
     flatpak \
-    flatseal \
     mpv \
     firefox \
     mesa-va-drivers-freeworld \
