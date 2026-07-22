@@ -20,7 +20,6 @@ jobs:
       packages: write
 
     steps:
-      # 1. Aggressively purge pre-baked system bloat to free up 40GB+ of space cleanly
       - name: Free Disk Space
         uses: jlumbroso/free-disk-space@main
         with:
@@ -72,21 +71,28 @@ jobs:
       - name: Create Work Directories
         run: |
           mkdir -p ./output
-          mkdir -p ./config
+          mkdir -p ./config-dir
 
+      # Creates an official auth.json file using the runner's automated workflow token
+      - name: Generate Registry Authentication File
+        run: |
+          X_AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64)
+          echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"$X_AUTH\"}}}" > ./config-dir/auth.json
+
+      # Mounts the config-dir folder to /config so the builder can pull from GHCR securely
       - name: Generate Installer ISO
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          sudo podman run \
+          sudo docker run \
             --rm \
             --privileged \
             -v ./config.toml:/config.toml:ro \
+            -v ./config-dir:/config:ro \
             -v ./output:/output \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            --rootfs ext4 \
-            --target-arch amd64 \
+            --rootfs xfs \
             ${IMAGE_LOWER}:latest
 
       - name: Upload ISO Installer Artifact
