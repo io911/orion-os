@@ -20,23 +20,17 @@ jobs:
       packages: write
 
     steps:
-      - name: Maximize Disk Space
-        uses: easimon/maximize-build-space@master
+      # 1. Aggressively purge pre-baked system bloat to free up 40GB+ of space cleanly
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
         with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-
-      - name: Reconfigure Docker Storage Location
-        run: |
-          sudo systemctl stop docker.service docker.socket
-          sudo mkdir -p /home/runner/docker
-          echo '{"data-root": "/home/runner/docker"}' | sudo tee /etc/docker/daemon.json
-          sudo rm -rf /var/lib/docker
-          sudo systemctl start docker.service
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap: true
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -45,7 +39,6 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # We build directly using lowercase registry variables to avoid GHCR tag naming errors
       - name: Build Local Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
@@ -62,15 +55,16 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize Disk Space
-        uses: easimon/maximize-build-space@master
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
         with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap: true
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -80,7 +74,6 @@ jobs:
           mkdir -p ./output
           mkdir -p ./config
 
-      # The ISO utility pulls the image from the cloud, embedding the tracking URL natively into the OS
       - name: Generate Installer ISO
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
@@ -92,7 +85,7 @@ jobs:
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
-            --rootfs xfs \
+            --rootfs ext4 \
             ${IMAGE_LOWER}:latest
 
       - name: Upload ISO Installer Artifact
