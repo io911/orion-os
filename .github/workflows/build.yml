@@ -85,6 +85,7 @@ jobs:
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type iso \
             --config /config.toml \
+            --rootfs xfs \
             localhost/${{ env.IMAGE_NAME }}:latest
 
       # 8. Upload the final bootable installer artifact
