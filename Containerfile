@@ -32,7 +32,6 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     flatpak \
     mpv \
     firefox \
-    mesa-va-drivers-freeworld \
     intel-media-driver \
     libva-utils \ 
     htop \
