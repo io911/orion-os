@@ -6,6 +6,9 @@ on:
       - main
     paths-ignore:
       - 'README.md'
+  schedule:
+    # Runs at 2:00 AM EST (7:00 AM UTC) every Monday morning
+    - cron: '0 7 * * 1'
   workflow_dispatch:
 
 env:
