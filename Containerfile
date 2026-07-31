@@ -15,6 +15,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     --refresh \
     --allow-downgrade \
     --skip-broken \
+    --nodocs \
     niri \
     xwayland-satellite \
     waybar \
