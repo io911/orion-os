@@ -38,7 +38,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     htop \
     micro \
     fastfetch \
-    python3-requests \
+RUN dnf -y remove firefox-langpacks alacritty fedora-logos malcontent \
     && dnf clean all
 
 # 4. Configure greetd to use cosmic-greeter as the default login manager
