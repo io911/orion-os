@@ -18,7 +18,7 @@ RUN dnf -y install \
 RUN dnf -y install 'dnf5-command(copr)' && dnf -y copr enable yalter/niri
 RUN dnf -y swap ffmpeg-free ffmpeg --allowerasing
 
-# 4. Install Niri, cosmic-greeter, hardware accelerated drivers, Kitty, and essentials
+# 4. Install Niri, drivers, Kitty and essentials
 RUN dnf -y upgrade --refresh && dnf -y install \
     --refresh \
     --allow-downgrade \
@@ -37,7 +37,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     swaybg \
     wlogout \
     nautilus \
-    qalculate \
+    gnome-calculator \
     mediawriter \
     flatpak \
     mpv \
@@ -45,7 +45,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     intel-media-driver \
     libva-utils \ 
     htop \
-    micro \
+    neovim \
     fastfetch \
     systemd-networkd \
     iwd \
