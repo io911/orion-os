@@ -2,12 +2,12 @@
 FROM quay.io/fedora/fedora-bootc:44
 
 # 1. Set environment variables for Locale and system generation
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-RUN dnf -y install glibc-langpack-en && dnf clean all
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+#ENV LANG=C.UTF-8
+#ENV LC_ALL=C.UTF-8
+#RUN dnf -y install glibc-langpack-en && dnf clean all
+#ENV LANG=en_US.UTF-8
+#ENV LANGUAGE=en_US.UTF-8
+#ENV LC_ALL=en_US.UTF-8
 
 # 2. Install RPM Fusion Free and Nonfree repositories explicitly for Fedora 44
 RUN dnf -y install \
@@ -51,15 +51,28 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     && dnf -y remove firefox-langpacks alacritty wpa_supplicant \
     && dnf clean all
 
-# 4.5 Tell NetworkManager to use iwd as the wifi backend
-RUN mkdir -p /etc/NetworkManager/conf.d && \
-    echo -e "[device]\nwifi.backend=iwd" > /etc/NetworkManager/conf.d/10-wifi-iwd.conf
+# 5. Configure systemd-networkd to handle wireless links and run DHCP automatically
+RUN mkdir -p /etc/systemd/network && \
+    echo -e "[Match]\nName=wlan* wlp*\n\n[Network]\nDHCP=yes\nIgnoreCarrierLoss=3s" > /etc/systemd/network/25-wireless.network
 
-# 5 Enable Ly on TTY2 and forcefully override/disable any conflicting DM
+# 6. Configure iwd to operate independently and use systemd-networkd as its backend
+RUN mkdir -p /etc/iwd && \
+    echo -e "[General]\nEnableNetworkConfiguration=false" > /etc/iwd/main.conf
+
+# 7. Force mask NetworkManager to guarantee it can never run or spawn at boot
+RUN systemctl mask NetworkManager NetworkManager-wait-online NetworkManager-dispatcher
+
+# 8. Enable the modern alternative systemd stack
+RUN systemctl enable systemd-networkd systemd-resolved iwd
+
+# 9. Pre-stage systemd-resolved for standard DNS handling
+RUN ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
+# 10. Fix system-wide localectl default config
+RUN echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+# 11. Enable Ly on TTY2 and forcefully override/disable any conflicting DM
 RUN systemctl enable ly@tty2.service
 
-# Disable getty on the target TTY to prevent screen flickering
+# 12. Disable getty on the target TTY to prevent screen flickering
 RUN systemctl disable getty@tty2.service
-
-# 6. Set the system hostname to Orion
-RUN echo "orion" > /etc/hostname
