@@ -2,6 +2,9 @@
 FROM quay.io/fedora/fedora-bootc:44
 
 # 1. Set environment variables for Locale and system generation
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+RUN dnf -y install glibc-langpack-en && dnf clean all
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
@@ -23,9 +26,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     --nodocs \
     --exclude=amd-ucode-firmware,amd-gpu-firmware \
     niri \
-    microcode_ctl \
-    iwl7260-firmware \
-    iwlax2xx-firmware \
+    iwlwifi-mvm-firmware \
     xwayland-satellite \
     waybar \
     ly \
