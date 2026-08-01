@@ -55,8 +55,11 @@ RUN dnf -y upgrade --refresh && dnf -y install \
 RUN mkdir -p /etc/NetworkManager/conf.d && \
     echo -e "[device]\nwifi.backend=iwd" > /etc/NetworkManager/conf.d/10-wifi-iwd.conf
 
-# 5. Configure greetd to use cosmic-greeter as the default login manager
-RUN echo -e '[default_session]\ncommand = "cosmic-greeter"\nuser = "greeter"' > /etc/greetd/config.toml
+# 5 Enable Ly and forcefully override/disable any conflicting DM
+RUN systemctl enable ly.service
 
-# 5. Set the system hostname to Orion
+# Disable getty on the target TTY (Ly usually claims tty2) to prevent screen flickering
+RUN systemctl disable getty@tty2.service
+
+# 6. Set the system hostname to Orion
 RUN echo "orion" > /etc/hostname
