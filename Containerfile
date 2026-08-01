@@ -47,8 +47,9 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     htop \
     micro \
     fastfetch \
+    systemd-networkd \
     iwd \
-    && dnf -y remove firefox-langpacks alacritty wpa_supplicant \
+    && dnf -y remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
     && dnf clean all
 
 # 5. Configure systemd-networkd to handle wireless links and run DHCP automatically
@@ -59,20 +60,17 @@ RUN mkdir -p /etc/systemd/network && \
 RUN mkdir -p /etc/iwd && \
     echo -e "[General]\nEnableNetworkConfiguration=false" > /etc/iwd/main.conf
 
-# 7. Force mask NetworkManager to guarantee it can never run or spawn at boot
-RUN systemctl mask NetworkManager NetworkManager-wait-online NetworkManager-dispatcher
-
-# 8. Enable the modern alternative systemd stack
+# 7. Enable the modern alternative systemd stack
 RUN systemctl enable systemd-networkd systemd-resolved iwd
 
-# 9. Pre-stage systemd-resolved for standard DNS handling
+# 8. Pre-stage systemd-resolved for standard DNS handling
 RUN ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
-# 10. Fix system-wide localectl default config
+# 9. Fix system-wide localectl default config
 RUN echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
-# 11. Enable Ly on TTY2 and forcefully override/disable any conflicting DM
+# 10. Enable Ly on TTY2 and forcefully override/disable any conflicting DM
 RUN systemctl enable ly@tty2.service
 
-# 12. Disable getty on the target TTY to prevent screen flickering
+# 11. Disable getty on the target TTY to prevent screen flickering
 RUN systemctl disable getty@tty2.service
