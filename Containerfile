@@ -49,6 +49,8 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     fastfetch \
     systemd-networkd \
     iwd \
+    xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr \
+    mate-polkit \
     && dnf -y remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
     && dnf clean all
 
