@@ -49,29 +49,44 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
+      # STEP 1: Export the image cleanly from Docker daemon to a flat tar file
       - name: Save Unoptimized Image to Disk
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           docker save ${IMAGE_LOWER}:unoptimized -o unoptimized.tar
 
+      # STEP 2: Execute Rechunking by passing STORAGE_DRIVER=vfs to bypass overlay-on-overlay blocks
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
-          # Create a workspace directory for the optimized output tar
-          mkdir -p $(pwd)/output-dist
+          # Create a localized directory to receive the output layers cleanly
+          mkdir -p $(pwd)/output-dir
           
+          # We pass `--storage-driver vfs` directly to the underlying containers-storage engine via env vars
           docker run --rm --privileged \
+            -e STORAGE_DRIVER=vfs \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
             /usr/libexec/bootc-base-imagectl rechunk \
             docker-archive:/workspace/unoptimized.tar \
-            docker-archive:/workspace/output-dist/optimized.tar
+            containers-storage:${IMAGE_LOWER}:latest
 
+          # STEP 3: Export the finalized image out of the container's storage space to our local host directory
+          docker run --rm --privileged \
+            -e STORAGE_DRIVER=vfs \
+            -v $(pwd):/workspace \
+            quay.io/centos-bootc/centos-bootc:stream10 \
+            skopeo copy \
+            containers-storage:${IMAGE_LOWER}:latest \
+            docker-archive:/workspace/output-dir/optimized.tar:${IMAGE_LOWER}:latest
+
+      # STEP 4: Reload the chunked production image back into the host runner's Docker registry cache
       - name: Load Optimized Image back into Docker
         run: |
-          docker load -i output-dist/optimized.tar
+          docker load -i output-dir/optimized.tar
 
+      # STEP 5: Push the final optimized tag out to GitHub Packages
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
