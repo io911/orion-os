@@ -35,7 +35,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      # STEP 1: Log into GHCR via Podman (built natively into modern GitHub Ubuntu runners)
+      # STEP 1: Log into GHCR via native rootless Podman configuration
       - name: Log in to GitHub Container Registry
         uses: redhat-actions/podman-login@v1
         with:
@@ -43,7 +43,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # STEP 2: Build the unoptimized image directly into Podman's local cache
+      # STEP 2: Build the standard unoptimized Image
       - name: Build Local Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
@@ -51,22 +51,27 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Rechunk using Podman's native ability to share its local user storage
-      - name: Rechunk Bootc Image for Incremental Updates
+      # STEP 3: Extract the tool binary directly onto the host runner's local execution space
+      - name: Extract Rechunker Tool Binary
+        run: |
+          mkdir -p bin
+          podman create --name tool-extractor quay.io/centos-bootc/centos-bootc:stream10
+          podman cp tool-extractor:/usr/libexec/bootc-base-imagectl ./bin/bootc-base-imagectl
+          podman rm tool-extractor
+          chmod +x ./bin/bootc-base-imagectl
+
+      # STEP 4: Run the rechunker natively on the host runner disk space
+      # Since it runs natively on the host, it shares the exact local Podman database without errors.
+      - name: Rechunk Bootc Image Natively
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
-          # By mounting Podman's native user cache (~/.local/share/containers/storage) 
-          # directly into the container, the tool can read and write chunks at full kernel speed
-          podman run --rm --privileged \
-            --device /dev/fuse \
-            -v /home/runner/.local/share/containers/storage:/var/lib/containers/storage \
-            quay.io/centos-bootc/centos-bootc:stream10 \
-            /usr/libexec/bootc-base-imagectl rechunk \
+          # Execute the extracted binary directly as a rootless host operation
+          ./bin/bootc-base-imagectl rechunk \
             containers-storage:${IMAGE_LOWER}:unoptimized \
-            ${IMAGE_LOWER}:latest
+            containers-storage:${IMAGE_LOWER}:latest
 
-      # STEP 4: Push the cleanly optimized image straight to GitHub Packages via Podman
+      # STEP 5: Push the final optimized tag out to GitHub Packages via Podman
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
