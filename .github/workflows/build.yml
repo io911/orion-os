@@ -52,8 +52,12 @@ jobs:
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          
+          # Create an isolated temporary directory for container storage overhead
+          mkdir -p $(pwd)/containers-storage
+          
           docker run --rm --privileged \
-            -v /var/lib/docker:/var/lib/containers:ro \
+            -v $(pwd)/containers-storage:/var/lib/containers \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
             /usr/libexec/bootc-base-imagectl rechunk \
