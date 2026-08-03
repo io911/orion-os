@@ -48,8 +48,19 @@ jobs:
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           docker build \
-            -t ${IMAGE_LOWER}:latest \
+            -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
+      
+      - name: Rechunk Bootc Image for Incremental Updates
+        run: |
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          docker run --rm --privileged \
+            -v /var/lib/docker:/var/lib/containers:ro \
+            -v $(pwd):/workspace \
+            quay.io/centos-bootc/centos-bootc:stream10 \
+            /usr/libexec/bootc-base-imagectl rechunk \
+            docker://localhost/${IMAGE_LOWER}:unoptimized \
+            docker://localhost/${IMAGE_LOWER}:latest
 
       - name: Push Container to GitHub Packages
         run: |
