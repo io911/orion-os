@@ -49,49 +49,56 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 1: Export the unoptimized OCI image out of Docker to a flat tar file
+      # STEP 1: Export the image out of Docker cleanly
       - name: Save Unoptimized Image to Disk
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           docker save ${IMAGE_LOWER}:unoptimized -o unoptimized.tar
 
-      # STEP 2: Rechunk by dropping the file descriptor ceilings down to normal levels
+      # STEP 2: High-Speed Rechunk via fuse-overlayfs
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
           mkdir -p $(pwd)/output-dir
           
-          # Adding --ulimit stops the background loop from hanging forever
+          # Key Upgrades here:
+          # 1. We map /dev/fuse to handle nested image extraction at high speeds
+          # 2. We use STORAGE_DRIVER=overlay with mount_program to use fuse-overlayfs
+          # 3. We keep ulimit dropped down to avoid the initialization freeze
           docker run --rm --privileged \
+            --device /dev/fuse \
             --ulimit nofile=4096:4096 \
-            -e STORAGE_DRIVER=vfs \
+            -e STORAGE_DRIVER=overlay \
+            -e STORAGE_OPTS="mount_program=/usr/bin/fuse-overlayfs" \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
             /usr/libexec/bootc-base-imagectl rechunk \
             docker-archive:/workspace/unoptimized.tar \
             ${IMAGE_LOWER}:latest
 
-      # STEP 3: Export the chunked container image safely using matching limits
+      # STEP 3: Export optimized container back using high-speed overlay configs
       - name: Export Optimized Image Archive
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
           docker run --rm --privileged \
+            --device /dev/fuse \
             --ulimit nofile=4096:4096 \
-            -e STORAGE_DRIVER=vfs \
+            -e STORAGE_DRIVER=overlay \
+            -e STORAGE_OPTS="mount_program=/usr/bin/fuse-overlayfs" \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
             skopeo copy \
             containers-storage:${IMAGE_LOWER}:latest \
             docker-archive:/workspace/output-dir/optimized.tar:${IMAGE_LOWER}:latest
 
-      # STEP 4: Reload the finalized, package-optimized image directly into the host runner's Docker Engine
+      # STEP 4: Reload the finalized image to the host Docker engine
       - name: Load Optimized Image back into Docker
         run: |
           docker load -i output-dir/optimized.tar
 
-      # STEP 5: Push the final optimized tag out to GitHub Packages cleanly
+      # STEP 5: Push the cleanly optimized image to GitHub Packages
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
