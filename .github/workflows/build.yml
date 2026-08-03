@@ -51,12 +51,8 @@ jobs:
 
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
-          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          
-          # 1. Create the temporary local storage directory
-          mkdir -p $(pwd)/containers-storage
-          
-          # 2. Run the tool without using transport prefixes (docker://)
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')          
+          mkdir -p $(pwd)/containers-storage          
           docker run --rm --privileged \
             -v $(pwd)/containers-storage:/var/lib/containers \
             -v $(pwd):/workspace \
