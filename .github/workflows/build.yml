@@ -56,7 +56,7 @@ jobs:
           # Pass raw strings. The tool appends containers-storage: natively to both.
           sudo podman run --rm --privileged \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
-            quay.io/centos-bootc/centos-bootc:stream10 \
+            quay.io/fedora/fedora-bootc:44 \
             /usr/libexec/bootc-base-imagectl rechunk \
             ${IMAGE_LOWER}:unoptimized \
             ${IMAGE_LOWER}:latest
