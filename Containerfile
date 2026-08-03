@@ -1,5 +1,6 @@
-# Use the official Fedora Bootc base image
-FROM quay.io/fedora/fedora-bootc:44
+# Use the official Fedora Bootc base image. BASE_IMAGE argument is linked to build.yml file.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
 
 # 1. Set environment variables for Locale and system generation
 ENV LANG=C.UTF-8
