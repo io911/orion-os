@@ -51,6 +51,7 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     iwd \
     xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr \
     mate-polkit \
+    eza zoxide \
     && dnf -y remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
     && dnf clean all
 
