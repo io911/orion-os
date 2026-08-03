@@ -53,16 +53,17 @@ jobs:
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
-          # Create an isolated temporary directory for container storage overhead
+          # 1. Create the temporary local storage directory
           mkdir -p $(pwd)/containers-storage
           
+          # 2. Run the tool without using transport prefixes (docker://)
           docker run --rm --privileged \
             -v $(pwd)/containers-storage:/var/lib/containers \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
             /usr/libexec/bootc-base-imagectl rechunk \
-            docker://localhost/${IMAGE_LOWER}:unoptimized \
-            docker://localhost/${IMAGE_LOWER}:latest
+            ${IMAGE_LOWER}:unoptimized \
+            ${IMAGE_LOWER}:latest
 
       - name: Push Container to GitHub Packages
         run: |
