@@ -48,17 +48,17 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Rechunk via rootful storage mapping
-      # Running under sudo unifies paths, rendering DB path adjustments unnecessary.
+      # STEP 3: Rechunk via rootful storage mapping using raw image strings
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
+          # Pass raw strings. The tool appends containers-storage: natively to both.
           sudo podman run --rm --privileged \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/centos-bootc:stream10 \
             /usr/libexec/bootc-base-imagectl rechunk \
-            containers-storage:${IMAGE_LOWER}:unoptimized \
+            ${IMAGE_LOWER}:unoptimized \
             ${IMAGE_LOWER}:latest
 
       # STEP 4: Push the final optimized production tag directly from rootful storage
