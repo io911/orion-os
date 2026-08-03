@@ -55,15 +55,16 @@ jobs:
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           docker save ${IMAGE_LOWER}:unoptimized -o unoptimized.tar
 
-      # STEP 2: Rechunk by passing only the RAW image name string as the target argument
+      # STEP 2: Rechunk by dropping the file descriptor ceilings down to normal levels
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
           mkdir -p $(pwd)/output-dir
           
-          # Pass the raw reference string. The tool appends containers-storage: natively.
+          # Adding --ulimit stops the background loop from hanging forever
           docker run --rm --privileged \
+            --ulimit nofile=4096:4096 \
             -e STORAGE_DRIVER=vfs \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
@@ -71,8 +72,13 @@ jobs:
             docker-archive:/workspace/unoptimized.tar \
             ${IMAGE_LOWER}:latest
 
-          # STEP 3: Export the chunked container image safely out to our workspace folder using Skopeo
+      # STEP 3: Export the chunked container image safely using matching limits
+      - name: Export Optimized Image Archive
+        run: |
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          
           docker run --rm --privileged \
+            --ulimit nofile=4096:4096 \
             -e STORAGE_DRIVER=vfs \
             -v $(pwd):/workspace \
             quay.io/centos-bootc/centos-bootc:stream10 \
