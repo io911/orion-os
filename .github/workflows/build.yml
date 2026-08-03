@@ -1,5 +1,4 @@
 name: Build Orion OS
-
 on:
   push:
     branches:
@@ -8,7 +7,6 @@ on:
       - 'README.md'
   schedule:
     - cron: '18 4 * * 1'
-      timezone: 'America/New_York'
   workflow_dispatch:
 
 env:
@@ -40,9 +38,9 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
-           registry: ghcr.io
-           username: ${{ github.actor }}
-           password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Local Bootc Image
         run: |
@@ -50,7 +48,7 @@ jobs:
           docker build \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
-      
+
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
