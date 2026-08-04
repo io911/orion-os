@@ -51,23 +51,23 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Optimized Fast Rechunking
+      # STEP 3: Optimized Fast Rechunking (Fixed namespace format syntax)
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
-          # 1. Mount the shared socket AND local storage paths
-          # 2. Leverage a tempfs RAM disk for the tool's temporary workspace
+          # The wrapper script explicitly appends its own image specifiers.
+          # Keep the full /var/lib/containers map and the fast 4GB RAM partition.
           sudo podman run --rm --privileged \
             -v /var/lib/containers:/var/lib/containers \
             --tmpfs /tmp:rw,size=4G \
             ${{ env.BASE_IMAGE }} \
             /usr/libexec/bootc-base-imagectl rechunk \
-            containers-storage:${IMAGE_LOWER}:unoptimized \
-            containers-storage:${IMAGE_LOWER}:latest
+            ${IMAGE_LOWER}:unoptimized \
+            ${IMAGE_LOWER}:latest
 
       # STEP 4: Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          sudo podman push --compression-format=zstd:chunked containers-storage:${IMAGE_LOWER}:latest
+          sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
