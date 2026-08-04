@@ -42,11 +42,12 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # STEP 2: Build the unoptimized image straight into root-owned storage
+      # STEP 2: Build the unoptimized image passing the central ENV string correctly
       - name: Build Local Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman build \
+            --build-arg BASE_IMAGE=$BASE_IMAGE \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
