@@ -65,8 +65,8 @@ jobs:
             ${IMAGE_LOWER}:unoptimized \
             ${IMAGE_LOWER}:latest
 
-      # STEP 4: Push the final optimized production tag directly from rootful storage
+      # STEP 4: Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          sudo podman push ${IMAGE_LOWER}:latest
+          sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
