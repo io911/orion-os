@@ -51,22 +51,23 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Rechunk using the cached local base image layers
+      # STEP 3: Optimized Fast Rechunking
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
-          # Using env.BASE_IMAGE avoids a fresh network pull entirely.
-          # The runner extracts bootc-base-imagectl straight from local storage cache.
+          # 1. Mount the shared socket AND local storage paths
+          # 2. Leverage a tempfs RAM disk for the tool's temporary workspace
           sudo podman run --rm --privileged \
-            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            -v /var/lib/containers:/var/lib/containers \
+            --tmpfs /tmp:rw,size=4G \
             ${{ env.BASE_IMAGE }} \
             /usr/libexec/bootc-base-imagectl rechunk \
-            ${IMAGE_LOWER}:unoptimized \
-            ${IMAGE_LOWER}:latest
+            containers-storage:${IMAGE_LOWER}:unoptimized \
+            containers-storage:${IMAGE_LOWER}:latest
 
       # STEP 4: Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
+          sudo podman push --compression-format=zstd:chunked containers-storage:${IMAGE_LOWER}:latest
