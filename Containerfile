@@ -1,6 +1,7 @@
 # Use the official Fedora Bootc base image. BASE_IMAGE argument is linked to build.yml file.
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
+ARG BASE_IMAGE
 
 # 1. Set environment variables for Locale and system generation
 ENV LANG=C.UTF-8
@@ -12,8 +13,8 @@ ENV LC_ALL=en_US.UTF-8
 
 # 2. Install RPM Fusion Free and Nonfree repositories explicitly for Fedora 44
 RUN dnf -y install \
-    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm \
-    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-44.noarch.rpm
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # 3. Install the dnf5 COPR plugin and enable the official Niri repository
 RUN dnf -y install 'dnf5-command(copr)' && dnf -y copr enable yalter/niri
