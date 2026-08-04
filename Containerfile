@@ -41,7 +41,6 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     nautilus \
     gnome-calculator \
     mediawriter \
-    fuse \
     flatpak \
     firefox \
     intel-media-driver \
