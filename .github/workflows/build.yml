@@ -50,7 +50,7 @@ jobs:
           sudo podman build \
             --build-arg BASE_IMAGE=$BASE_IMAGE \
             --cache-from ${IMAGE_LOWER}:latest \
-            --cache-from type=registry \
+            --cache-from=type=registry,ref=${IMAGE_LOWER}:latest
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
