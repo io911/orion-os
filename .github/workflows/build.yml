@@ -57,7 +57,7 @@ jobs:
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman build \
-            --cache-from ${IMAGE_LOWER}:unoptimized \
+            --cache-from ${IMAGE_LOWER} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
