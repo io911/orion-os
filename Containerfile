@@ -8,7 +8,7 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # 1. Consolidated DNF transaction with persistent package cache enablement
-RUN dnf -y install \
+RUN dnf -y install --setopt=max_parallel_downloads=10 \
       glibc-langpack-en \
       https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
       https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm \
