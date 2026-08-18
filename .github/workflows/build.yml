@@ -38,28 +38,38 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      # STEP 1: Log into GHCR inside the root execution context
+      # Cache Podman containers storage layer across workflow runs
+      - name: Cache Podman Storage
+        uses: actions/cache@v4
+        with:
+          path: /var/lib/containers
+          key: ${{ runner.os }}-podman-${{ hashFiles('**/Containerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-podman-
+
+      # Log into GHCR inside the root execution context
       - name: Log in to GitHub Container Registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # STEP 2: Build the unoptimized image passing the central ENV string correctly
+      # Build the unoptimized image with layer caching enabled
       - name: Build Local Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman build \
-            --build-arg BASE_IMAGE=$BASE_IMAGE \
+            --cache-from ${IMAGE_LOWER}:unoptimized \
+            --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-            # STEP 3: Optimized Fast Rechunking (Fixed namespace format syntax + systemd mock bypass)
+      # Optimized Fast Rechunking
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
           # Create a dummy container placeholder to mock systemd behavior and bypass timeouts
           sudo mkdir -p /tmp/mock-bin
-          echo -e '#!/bin/sh\nexit 0' | sudo tee /tmp/mock-bin/systemctl > /tmp/null
+          echo -e '#!/bin/sh\nexit 0' | sudo tee /tmp/mock-bin/systemctl > /dev/null
           sudo chmod +x /tmp/mock-bin/systemctl
 
           sudo podman run --rm --privileged \
@@ -72,9 +82,9 @@ jobs:
             ${IMAGE_LOWER}:unoptimized \
             ${IMAGE_LOWER}:latest
 
-      # STEP 4: Push the final optimized production tag with zstd:chunked compression
+      # Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
-        if: github.ref == 'refs/heads/main'  # Only on main branch
+        if: github.ref == 'refs/heads/main'
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
