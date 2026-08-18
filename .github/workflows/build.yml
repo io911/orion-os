@@ -38,32 +38,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      # Cache Podman containers storage layer across workflow runs
-      - name: Cache Podman Storage
+      # Cache DNF packages across workflow runs instead of raw engine storage
+      - name: Cache DNF Downloads
         uses: actions/cache@v4
         with:
-          path: /var/lib/containers
-          key: ${{ runner.os }}-podman-${{ hashFiles('**/Containerfile') }}
+          path: /tmp/dnf-cache
+          key: ${{ runner.os }}-dnf-${{ hashFiles('**/Containerfile') }}
           restore-keys: |
-            ${{ runner.os }}-podman-
+            ${{ runner.os }}-dnf-
 
-      # Log into GHCR inside the root execution context
+      # STEP 1: Log into GHCR inside the root execution context
       - name: Log in to GitHub Container Registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Build the unoptimized image with layer caching enabled
+      # STEP 2: Build image with mounted host DNF cache
       - name: Build Local Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          mkdir -p /tmp/dnf-cache
           sudo podman build \
-            --cache-from ${IMAGE_LOWER} \
+            -v /tmp/dnf-cache:/var/cache/dnf:Z \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # Optimized Fast Rechunking
+      # STEP 3: Rechunk Bootc Image ONLY on release pushes to main branch or scheduled runs
       - name: Rechunk Bootc Image for Incremental Updates
+        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           
@@ -82,9 +84,9 @@ jobs:
             ${IMAGE_LOWER}:unoptimized \
             ${IMAGE_LOWER}:latest
 
-      # Push the final optimized production tag with zstd:chunked compression
+      # STEP 4: Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'  # Only on main branch
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
