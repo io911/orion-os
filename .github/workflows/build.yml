@@ -52,12 +52,20 @@ jobs:
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Optimized Fast Rechunking (Fixed namespace format syntax)
+            # STEP 3: Optimized Fast Rechunking (Fixed namespace format syntax + systemd mock bypass)
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          
+          # Create a dummy container placeholder to mock systemd behavior and bypass timeouts
+          sudo mkdir -p /tmp/mock-bin
+          echo -e '#!/bin/sh\nexit 0' | sudo tee /tmp/mock-bin/systemctl > /tmp/null
+          sudo chmod +x /tmp/mock-bin/systemctl
+
           sudo podman run --rm --privileged \
             -v /var/lib/containers:/var/lib/containers \
+            -v /tmp/mock-bin/systemctl:/usr/bin/systemctl:ro \
+            -v /tmp/mock-bin/systemctl:/usr/sbin/systemctl:ro \
             --tmpfs /tmp:rw,size=8G \
             ${{ env.BASE_IMAGE }} \
             /usr/libexec/bootc-base-imagectl rechunk \
