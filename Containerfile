@@ -7,7 +7,7 @@ ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
-# Single consolidated RUN layer for DNF setup, upgrades, installs, and removals
+# 1. Consolidated DNF transaction with persistent package cache enablement
 RUN dnf -y install \
       glibc-langpack-en \
       https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
@@ -15,28 +15,19 @@ RUN dnf -y install \
       'dnf5-command(copr)' \
     && dnf -y copr enable yalter/niri \
     && dnf -y swap ffmpeg-free ffmpeg --allowerasing \
-    && dnf -y upgrade --refresh \
-    && dnf -y install \
+    && dnf -y install --setopt=keepcache=1 \
         --skip-broken \
         --nodocs \
         --exclude=amd-ucode-firmware,amd-gpu-firmware \
         niri iwlwifi-mvm-firmware xwayland-satellite waybar ly kitty wlsunset swayidle swaylock swaybg wlogout nautilus gnome-calculator mediawriter flatpak firefox intel-media-driver libva-utils \
         htop neovim fastfetch systemd-networkd iwd xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr mate-polkit eza zoxide fish \
-    && dnf -y --setopt=tsflags=noscripts remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
-    && dnf clean all
+    && dnf -y --setopt=tsflags=noscripts remove firefox-langpacks alacritty wpa_supplicant NetworkManager*
 
-# Configure systemd-networkd to handle wireless links and run DHCP automatically
-RUN mkdir -p /etc/systemd/network && \
-    echo -e "[Match]\nName=wlan* wlp*\n\n[Network]\nDHCP=yes\nIgnoreCarrierLoss=3s" > /etc/systemd/network/25-wireless.network
-
-# Configure iwd to operate independently and use systemd-networkd as its backend
-RUN mkdir -p /etc/iwd && \
-    echo -e "[General]\nEnableNetworkConfiguration=false" > /etc/iwd/main.conf
-
-# Pre-stage systemd-resolved and locale defaults
-RUN ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf && \
-    echo "LANG=en_US.UTF-8" > /etc/locale.conf
-
-# Systemd services management
-RUN systemctl enable systemd-networkd systemd-resolved iwd ly@tty2.service && \
+# 2. Consolidated system and service configurations into a single image layer
+RUN mkdir -p /etc/systemd/network /etc/iwd && \
+    echo -e "[Match]\nName=wlan* wlp*\n\n[Network]\nDHCP=yes\nIgnoreCarrierLoss=3s" > /etc/systemd/network/25-wireless.network && \
+    echo -e "[General]\nEnableNetworkConfiguration=false" > /etc/iwd/main.conf && \
+    ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf && \
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf && \
+    systemctl enable systemd-networkd systemd-resolved iwd ly@tty2.service && \
     systemctl disable getty@tty2.service
