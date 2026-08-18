@@ -24,6 +24,7 @@ jobs:
 
     steps:
       - name: Free Disk Space
+        if: github.event_name == 'schedule'  # Only during scheduled runs 
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
@@ -48,6 +49,8 @@ jobs:
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman build \
             --build-arg BASE_IMAGE=$BASE_IMAGE \
+            --cache-from ${IMAGE_LOWER}:latest \
+            --cache-from type=registry \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
@@ -55,12 +58,9 @@ jobs:
       - name: Rechunk Bootc Image for Incremental Updates
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          
-          # The wrapper script explicitly appends its own image specifiers.
-          # Keep the full /var/lib/containers map and the fast 4GB RAM partition.
           sudo podman run --rm --privileged \
             -v /var/lib/containers:/var/lib/containers \
-            --tmpfs /tmp:rw,size=4G \
+            --tmpfs /tmp:rw,size=8G \
             ${{ env.BASE_IMAGE }} \
             /usr/libexec/bootc-base-imagectl rechunk \
             ${IMAGE_LOWER}:unoptimized \
@@ -68,6 +68,7 @@ jobs:
 
       # STEP 4: Push the final optimized production tag with zstd:chunked compression
       - name: Push Container to GitHub Packages
+        if: github.ref == 'refs/heads/main'  # Only on main branch
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
