@@ -27,34 +27,9 @@ RUN dnf -y upgrade --refresh && dnf -y install \
     --skip-broken \
     --nodocs \
     --exclude=amd-ucode-firmware,amd-gpu-firmware \
-    niri \
-    iwlwifi-mvm-firmware \
-    xwayland-satellite \
-    waybar \
-    ly \
-    kitty \
-    wlsunset \
-    swayidle \
-    swaylock \
-    swaybg \
-    wlogout \
-    nautilus \
-    gnome-calculator \
-    mediawriter \
-    flatpak \
-    firefox \
-    intel-media-driver \
-    libva-utils \ 
-    htop \
-    neovim \
-    fastfetch \
-    systemd-networkd \
-    iwd \
-    xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr \
-    mate-polkit \
-    eza zoxide \
-    fish \
-    && dnf -y remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
+    niri iwlwifi-mvm-firmware xwayland-satellite waybar ly kitty wlsunset swayidle swaylock swaybg wlogout nautilus gnome-calculator mediawriter flatpak firefox intel-media-driver libva-utils \
+    htop neovim fastfetch systemd-networkd iwd xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr mate-polkit eza zoxide fish \
+    && dnf -y --setopt=tsflags=noscripts remove firefox-langpacks alacritty wpa_supplicant NetworkManager* \
     && dnf clean all
 
 # 5. Configure systemd-networkd to handle wireless links and run DHCP automatically
