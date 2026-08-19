@@ -23,8 +23,9 @@ jobs:
       packages: write
 
     steps:
+      # Free up disk space before heavy image builds & rechunking
       - name: Free Disk Space
-        if: github.event_name == 'schedule'  # Only during scheduled runs 
+        if: github.event_name == 'schedule'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
@@ -36,46 +37,43 @@ jobs:
           swap: true
 
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
-      # STEP 1: Log into GHCR inside the root execution context
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # STEP 2: Build local bootc image
-      - name: Build Local Bootc Image
+      # STEP 1: Build & Rechunk in a single shell block
+      - name: Build and Rechunk Bootc Image
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+
+          # 1a. Build raw local bootc image
           sudo podman build \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             -t ${IMAGE_LOWER}:unoptimized \
             -f ./Containerfile .
 
-      # STEP 3: Rechunk Bootc Image ONLY on release pushes to main branch or scheduled runs
-      - name: Rechunk Bootc Image for Incremental Updates
+          # 1b. Rechunk image ONLY on main branch pushes or schedule
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event_name }}" = "schedule" ]; then
+            sudo mkdir -p /tmp/mock-bin
+            echo -e '#!/bin/sh\nexit 0' | sudo tee /tmp/mock-bin/systemctl > /dev/null
+            sudo chmod +x /tmp/mock-bin/systemctl
+
+            sudo podman run --rm --privileged \
+              -v /var/lib/containers:/var/lib/containers \
+              -v /tmp/mock-bin/systemctl:/usr/bin/systemctl:ro \
+              -v /tmp/mock-bin/systemctl:/usr/sbin/systemctl:ro \
+              --tmpfs /tmp:rw,size=8G \
+              ${{ env.BASE_IMAGE }} \
+              /usr/libexec/bootc-base-imagectl rechunk \
+              ${IMAGE_LOWER}:unoptimized \
+              ${IMAGE_LOWER}:latest
+
+            # Free up disk space immediately before push step
+            sudo podman rmi ${IMAGE_LOWER}:unoptimized
+          fi
+
+      # STEP 2: Authenticate and Push Production Container
+      - name: Push Container to GitHub Packages
         if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
         run: |
           IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          
-          # Create a dummy container placeholder to mock systemd behavior and bypass timeouts
-          sudo mkdir -p /tmp/mock-bin
-          echo -e '#!/bin/sh\nexit 0' | sudo tee /tmp/mock-bin/systemctl > /dev/null
-          sudo chmod +x /tmp/mock-bin/systemctl
-
-          sudo podman run --rm --privileged \
-            -v /var/lib/containers:/var/lib/containers \
-            -v /tmp/mock-bin/systemctl:/usr/bin/systemctl:ro \
-            -v /tmp/mock-bin/systemctl:/usr/sbin/systemctl:ro \
-            --tmpfs /tmp:rw,size=8G \
-            ${{ env.BASE_IMAGE }} \
-            /usr/libexec/bootc-base-imagectl rechunk \
-            ${IMAGE_LOWER}:unoptimized \
-            ${IMAGE_LOWER}:latest
-
-      # STEP 4: Push the final production tag with zstd:chunked compression
-      - name: Push Container to GitHub Packages
-        if: github.ref == 'refs/heads/main'  # Only on main branch
-        run: |
-          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
           sudo podman push --compression-format=zstd:chunked ${IMAGE_LOWER}:latest
