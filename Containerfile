@@ -20,7 +20,7 @@ RUN dnf -y install --setopt=max_parallel_downloads=10 \
         --nodocs \
         --exclude=amd-ucode-firmware,amd-gpu-firmware \
         niri iwlwifi-mvm-firmware xwayland-satellite waybar ly kitty wlsunset swayidle swaylock swaybg wlogout nautilus gnome-calculator mediawriter flatpak firefox intel-media-driver libva-utils \
-        htop neovim fastfetch systemd-networkd iwd xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-wlr mate-polkit eza zoxide fish \
+        htop neovim fastfetch systemd-networkd iwd xdg-desktop-portal-gnome xdg-desktop-portal-wlr mate-polkit eza zoxide fish \
     && dnf -y --setopt=tsflags=noscripts remove firefox-langpacks alacritty wpa_supplicant NetworkManager*
 
 # 2. Consolidated system and service configurations into a single image layer
