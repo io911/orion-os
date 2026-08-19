@@ -30,6 +30,6 @@ RUN mkdir -p /etc/systemd/network /etc/iwd && \
     ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf && \
     echo "LANG=en_US.UTF-8" > /etc/locale.conf && \
     systemctl enable systemd-networkd systemd-resolved iwd ly@tty2.service && \
-    systemctl disable getty@tty2.service \
-    # Enable Ly to login with niri without getting "CmdExecutedFailed" which is blocked by SELinux
-    semanage permissive -a unconfined_service_t
+    systemctl disable getty@tty2.service 
+# 3. Enable Ly to login with niri without getting "CmdExecutedFailed" which is blocked by SELinux
+RUN semanage permissive -a unconfined_service_t
