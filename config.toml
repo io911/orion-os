@@ -1,8 +1,0 @@
-# Orion OS - Modern bootc-image-builder Configuration
-
-[[customizations.user]]
-name = "orionuser"
-description = "Primary Orion Operator"
-groups = ["wheel", "video", "audio"]
-# Generate your SHA-512 password hash using locally: openssl passwd -6
-password = "$6$rounds=40000$reporandomsalt$8GgX.G6tUj9rE.vLg1bZ2jY9w..."
