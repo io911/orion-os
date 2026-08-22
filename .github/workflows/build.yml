@@ -37,7 +37,7 @@ jobs:
           swap: true
 
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # STEP 1: Build & Rechunk in a single shell block
       - name: Build and Rechunk Bootc Image
