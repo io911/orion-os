@@ -1,4 +1,4 @@
-# Orion OS
+# OrionOS
 A container-native, atomic Fedora with the Niri scrollable-tiling window manager.
 
 ## Overview
@@ -12,7 +12,7 @@ Orion OS is a modern, minimal Linux distribution built on Fedora's atomic and co
 - **Reproducible Builds**: Containerized environment ensures consistent, reproducible builds
 
 
-## Switching to Orion OS
+## Switching to OrionOS
 You can switch to Orion OS from any Fedora-based immutable OS by opening a terminal and typing:
 
 "sudo bootc switch ghcr.io/io911/orion-bootc:latest"
