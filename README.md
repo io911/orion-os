@@ -1,11 +1,11 @@
 # OrionOS
-A container-native, atomic Fedora with the Niri scrollable-tiling window manager.
+A container-native, Fedora atomic with the Niri scrollable-tiling window manager.
 
 ## Overview
-Orion OS is a modern, minimal Linux distribution built on Fedora's atomic and container-native technologies. It features the innovative Niri scrollable-tiling window manager, providing a unique approach to window management with smooth scrolling between workspaces.
+OrionOS is a modern, minimal Linux distribution built on Fedora's atomic and container-native technologies. It features the innovative Niri scrollable-tiling window manager, providing a unique approach to window management with smooth scrolling between workspaces.
 
 ## Features
-- **Fedora Atomic Desktop**: Leverages Fedora's atomic desktop principles for immutable, reliable system updates
+- **Fedora Atomic**: Leverages Fedora's atomic principles for immutable, reliable system updates
 - **Container-Native**: Optimized for container workflows and cloud-native development
 - **Niri Window Manager**: Experience the next-generation scrollable-tiling window manager
 - **Minimal Footprint**: Lightweight and efficient, perfect for modern hardware
