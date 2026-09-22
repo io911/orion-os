@@ -15,4 +15,4 @@ OrionOS is a modern, minimal Linux distribution built on Fedora's atomic and con
 ## Switching to OrionOS
 You can switch to Orion OS from any Fedora-based immutable OS by opening a terminal and typing:
 
-"sudo bootc switch ghcr.io/io911/orion-bootc:latest"
+"sudo bootc switch ghcr.io/io911/orion-os:latest"
