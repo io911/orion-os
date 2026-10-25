@@ -31,3 +31,5 @@ RUN mkdir -p /etc/systemd/network /etc/iwd && \
     echo "LANG=en_US.UTF-8" > /etc/locale.conf && \
     systemctl enable systemd-networkd systemd-resolved iwd ly@tty2.service && \
     systemctl disable getty@tty2.service
+
+RUN echo 'force_drivers+=" i915 "' > /etc/dracut.conf.d/intel-kms.conf
